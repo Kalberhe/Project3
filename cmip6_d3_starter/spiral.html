@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Climate Spiral</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+</head>
+<body>
+  <main class="container">
+    <h2>Climate Spiral (Monthly Anomalies)</h2>
+    <div class="controls">
+      <label>Year: <input type="range" id="yearRange" min="0" max="0" value="0" step="1"></label>
+      <span id="yearLabel" class="badge"></span>
+      <button id="play">Play</button>
+      <button id="pause">Pause</button>
+    </div>
+    <div id="spiral"></div>
+    <p><a href="index.html">← Back</a></p>
+  </main>
+  <script src="js/spiral.js"></script>
+</body>
+</html>
