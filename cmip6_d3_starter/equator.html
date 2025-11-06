@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Warming Across the Pacific. 5°S to 5°N by decade</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Arial, "Noto Sans", sans-serif }
+  body { margin: 24px; color: #222 }
+  h2 { margin: 0 0 6px; font-size: 22px }
+  p.sub { margin: 0 0 14px; font-size: 14px; color: #555 }
+  .chart { margin: 28px 0 }
+  svg { max-width: 100%; height: auto }
+  .axis path, .axis line { shape-rendering: crispEdges }
+  .tooltip { pointer-events: none }
+  .hover-target { cursor: crosshair }
+</style>
+
+<h2>Warming Across the Pacific. 5°S to 5°N by decade</h2>
+<p class="sub">Temperature near the equator between 5° South and 5° North shown decade by decade from bottom to top. Each horizontal band is a decade from 1850 at the bottom to 2010 at the top. Longitude runs left to right across the Pacific.</p>
+<div id="equator-heatmap" class="chart"></div>
+
+<script type="module" src="js/equator.js"></script>

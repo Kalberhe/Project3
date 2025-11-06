@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Warming Acceleration. Year to year change in anomaly</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Arial, "Noto Sans", sans-serif }
+  body { margin: 24px; color: #222 }
+  h2 { margin: 0 0 6px; font-size: 22px }
+  p.sub { margin: 0 0 14px; font-size: 14px; color: #555 }
+  .chart { margin: 28px 0; transform: scale(.75); transform-origin: top left }
+  svg { max-width: 100%; height: auto }
+  .axis path, .axis line { shape-rendering: crispEdges }
+  .legend { font-size: 12px }
+  .tooltip { pointer-events: none }
+  .hover-target { cursor: crosshair }
+</style>
+
+<h2>Warming Acceleration. Year to year change in anomaly</h2>
+<p class="sub">How fast temperatures change each year in °C. Positive spikes mean faster warming.</p>
+<div id="acceleration" class="chart"></div>
+
+<script type="module" src="js/acceleration.js"></script>
