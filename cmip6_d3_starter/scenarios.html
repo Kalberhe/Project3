@@ -8,36 +8,39 @@
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
     .controls{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:8px 0 12px}
-    .pill{padding:2px 6px;border:1px solid #ddd;border-radius:6px}
+    .pill{padding:4px 8px;border:1px solid #e3e3e3;border-radius:8px;background:#fafafa}
+    .legend{display:flex;gap:16px;align-items:center;margin:6px 0 12px}
+    .legend .sw{width:14px;height:14px;border-radius:3px;display:inline-block;margin-right:6px}
     .tip{position:fixed;pointer-events:none;background:#fff;border:1px solid #ddd;
-         padding:6px 8px;border-radius:4px;font-size:12px;display:none}
+         padding:6px 8px;border-radius:6px;font-size:12px;display:none;box-shadow:0 6px 18px rgba(0,0,0,.08)}
+    .grid line{stroke:#eee}
   </style>
 </head>
 <body>
   <main class="container">
     <h1>Historical Global Temperature Anomalies</h1>
     <p class="subtitle">
-      Area-weighted global annual anomalies (baseline 1981–2010).
-      Use the timeframe toggle to focus the view.
+      Area-weighted global annual anomalies (baseline 1981–2010). Choose a start year, or zoom/pan directly.
     </p>
 
     <div class="controls">
       <span class="pill">
-        Timeframe:
-        <select id="rangeSel">
-          <option value="all">All years</option>
-          <option value="50">Last 50 years</option>
-          <option value="30">Last 30 years</option>
-          <option value="20">Last 20 years</option>
-          <option value="10">Last 10 years</option>
-        </select>
+        Start year:
+        <select id="startYear"></select>
       </span>
-      <label class="pill"><input type="checkbox" id="showRM" checked> Show 11-year rolling mean</label>
-      <label class="pill"><input type="checkbox" id="showThr" checked> Show 1.5 °C / 2.0 °C lines</label>
-      <button id="resetBtn">Reset Zoom</button>
+      <label class="pill"><input type="checkbox" id="showRM" checked> 11-year rolling mean</label>
+      <label class="pill"><input type="checkbox" id="showThr" checked> 1.5 °C & 2.0 °C guides</label>
+      <button id="resetBtn">Reset view</button>
     </div>
 
-    <svg id="hist" width="980" height="420" role="img"></svg>
+    <div class="legend" aria-hidden="true">
+      <span><span class="sw" style="background:#3a6aa6;"></span>Annual anomaly</span>
+      <span><span class="sw" style="background:#cf4a4a;"></span>11-yr rolling mean</span>
+      <span><span class="sw" style="background:linear-gradient(180deg,#f59f80 0%,#f59f80 60%,transparent 60%);border:1px solid #f2c0b2;"></span>Above 0 °C</span>
+      <span><span class="sw" style="background:linear-gradient(180deg,transparent 40%,#6b8fb6 40%,#6b8fb6 100%);border:1px solid #b9c9dd;"></span>Below 0 °C</span>
+    </div>
+
+    <svg id="hist" width="980" height="460" role="img"></svg>
   </main>
 
   <div id="tip" class="tip"></div>

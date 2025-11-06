@@ -8,3 +8,13 @@ svg { font: 12px sans-serif; }
 .tooltip { position: absolute; pointer-events: none; background: rgba(0,0,0,.75); color:#fff; padding: .4rem .6rem; border-radius: .25rem; font-size: 12px; }
 hr { border: 0; border-top: 1px solid #ddd; margin: 1.5rem 0; }
 small { color: #555; }
+select {
+  max-height: 6.5em; /* roughly 3 options tall */
+  overflow-y: auto;
+}
+select {
+  max-height: 6.5em;
+  overflow-y: auto;
+  padding: 2px;
+  font-size: 14px;
+}
