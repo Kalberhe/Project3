@@ -1,21 +1,52 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Seasonality by Decade</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Scenario Ridgeline — Global Temperature Anomalies</title>
   <link rel="stylesheet" href="style.css"/>
-  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    .controls{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:8px 0 10px}
+    .pill{padding:2px 6px;border:1px solid #ddd;border-radius:6px}
+    .legend-bands{font-size:12px;fill:#666}
+    .ridge path.area{fill-opacity:.75}
+    .ridge path.line{fill:none;stroke:#222;stroke-width:1}
+    .ridge .zero{stroke:#bbb;stroke-dasharray:4,4}
+    .ridge .thr{stroke:#bbb;stroke-dasharray:6,4;opacity:.7}
+    .ridge.dimmed{opacity:.25}
+    .tip{position:fixed;pointer-events:none;background:#fff;border:1px solid #ddd;
+         padding:6px 8px;border-radius:4px;font-size:12px;display:none}
+  </style>
 </head>
 <body>
   <main class="container">
-    <h2>Seasonality by Decade (Monthly Anomalies)</h2>
+    <h1>Scenario Ridgeline: Global Temperature Anomalies</h1>
+    <p class="subtitle">
+      One ridge per scenario. X = year, ridge height = anomaly (°C; baseline 1981–2010) around zero.
+      Hover for details, click/drag the overview to zoom years, toggle scenarios below.
+    </p>
+
     <div class="controls">
-      <div id="legend" class="legend"></div>
+      <span class="pill">
+        Y-scale:
+        <select id="ysel">
+          <option value="auto">Auto (tight)</option>
+          <option value="fixed">Fixed (±3 °C)</option>
+        </select>
+      </span>
+      <label class="pill"><input type="checkbox" id="showThr" checked> Show 1.5 °C & 2 °C lines</label>
+      <button id="resetBtn">Reset Zoom</button>
     </div>
-    <div id="chart"></div>
-    <p><a href="index.html">← Back</a></p>
+
+    <svg id="ridge" width="980" height="520" role="img" aria-label="Ridgeline chart"></svg>
+    <svg id="overview" width="980" height="90" role="img" aria-label="Year overview"></svg>
+
+    <h3 style="margin-top:14px">Scenarios</h3>
+    <div id="scenToggles" class="controls"></div>
   </main>
-  <script src="js/seasonality.js"></script>
+
+  <div id="tip" class="tip"></div>
+  <script src="js/scenarios.js" defer></script>
 </body>
 </html>

@@ -1,14 +1,46 @@
 <!doctype html>
-<meta charset="utf-8" />
-<title>Historical vs Future Scenarios (Global)</title>
-<link rel="stylesheet" href="style.css" />
-<script src="https://d3js.org/d3.v7.min.js"></script>
-
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Historical — Global Temperature Anomalies</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    .controls{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:8px 0 12px}
+    .pill{padding:2px 6px;border:1px solid #ddd;border-radius:6px}
+    .tip{position:fixed;pointer-events:none;background:#fff;border:1px solid #ddd;
+         padding:6px 8px;border-radius:4px;font-size:12px;display:none}
+  </style>
+</head>
 <body>
   <main class="container">
-    <h1>Historical vs Future Scenarios: Global Temperature Anomalies</h1>
-    <p class="subtitle">Area-weighted global annual anomalies (baseline 1981–2010). Guides at +1.5 °C and +2.0 °C.</p>
-    <svg id="scenarios" width="900" height="520" role="img"></svg>
+    <h1>Historical Global Temperature Anomalies</h1>
+    <p class="subtitle">
+      Area-weighted global annual anomalies (baseline 1981–2010).
+      Use the timeframe toggle to focus the view.
+    </p>
+
+    <div class="controls">
+      <span class="pill">
+        Timeframe:
+        <select id="rangeSel">
+          <option value="all">All years</option>
+          <option value="50">Last 50 years</option>
+          <option value="30">Last 30 years</option>
+          <option value="20">Last 20 years</option>
+          <option value="10">Last 10 years</option>
+        </select>
+      </span>
+      <label class="pill"><input type="checkbox" id="showRM" checked> Show 11-year rolling mean</label>
+      <label class="pill"><input type="checkbox" id="showThr" checked> Show 1.5 °C / 2.0 °C lines</label>
+      <button id="resetBtn">Reset Zoom</button>
+    </div>
+
+    <svg id="hist" width="980" height="420" role="img"></svg>
   </main>
-  <script src="js/scenarios.js"></script>
+
+  <div id="tip" class="tip"></div>
+  <script src="js/scenarios.js" defer></script>
 </body>
+</html>
