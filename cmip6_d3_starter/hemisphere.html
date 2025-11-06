@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Northern vs Southern Hemisphere Temperature Anomalies</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+</head>
+<body>
+  <main class="container">
+    <h2>Northern vs Southern Hemisphere Temperature Anomalies</h2>
+    
+    <div class="controls">
+      <div class="legend">
+        <label>
+          <input type="checkbox" id="toggleNorthern" checked>
+          <span style="color: #1f77b4;">Northern Hemisphere</span>
+        </label>
+        <label>
+          <input type="checkbox" id="toggleSouthern" checked>
+          <span style="color: #ff7f0e;">Southern Hemisphere</span>
+        </label>
+      </div>
+      <div style="margin-top: 1rem;">
+        <span>Select time range: </span>
+        <input type="range" id="yearStart" min="1850" max="2014" value="1850" step="1">
+        <span id="startYearDisplay">1850</span>
+        <span> - </span>
+        <input type="range" id="yearEnd" min="1850" max="2014" value="2014" step="1">
+        <span id="endYearDisplay">2014</span>
+        <button id="resetZoom">Reset Zoom</button>
+      </div>
+    </div>
+    
+    <div id="chart"></div>
+    <div id="brush"></div>
+    <p><a href="index.html">← Back</a></p>
+  </main>
+  <script src="js/hemisphere.js"></script>
+</body>
+</html>

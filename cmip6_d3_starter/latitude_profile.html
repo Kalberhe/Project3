@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Latitude Temperature Profile</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+</head>
+<body>
+  <main class="container">
+    <h2>Latitude Temperature Profile</h2>
+    <p style="color: #666; margin-bottom: 1rem;">
+      Average temperature across all longitudes for each latitude band. This shows how temperature 
+      varies from the equator to the poles.
+    </p>
+    
+    <div class="controls">
+      <div style="margin-bottom: 1rem;">
+        <label style="font-weight: bold; margin-right: 0.5rem;">Select Time Period:</label>
+        <select id="decadeSelect" style="padding: 0.5rem; font-size: 14px; min-width: 200px;">
+          <option value="">Loading...</option>
+        </select>
+      </div>
+      <div>
+        <label>
+          Show temperature range:
+          <input type="checkbox" id="showRange" checked>
+          <span>Fill area (min-max)</span>
+        </label>
+      </div>
+      <div style="margin-top: 0.5rem;">
+        <button id="resetZoom">Reset Zoom</button>
+      </div>
+    </div>
+    
+    <div id="chart"></div>
+    <p><a href="index.html">← Back</a></p>
+  </main>
+  <script src="js/latitude_profile.js"></script>
+</body>
+</html>
