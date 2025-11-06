@@ -1,9 +1,19 @@
 /* global d3 */
 (async function () {
-  const file = "data/scenarios_global_annual.csv"; // columns: year, scenario, anom_c
+  try {
+    const file = "data/scenarios_global_annual.csv"; // columns: year, scenario, anom_c
 
-  const rows = await d3.csv(file, d3.autoType);
-  console.log("scenarios loaded rows:", rows.length, rows[0]);
+    const rows = await d3.csv(file, d3.autoType);
+    console.log("scenarios loaded rows:", rows.length, rows[0]);
+    
+    if (!rows || rows.length === 0) {
+      console.error("No data loaded from", file);
+      const svg = d3.select("#scenarios");
+      const g = svg.append("g").attr("transform", "translate(58,28)");
+      g.append("text").attr("x", 0).attr("y", 16).attr("fill", "red")
+        .text("Error: No data loaded. Check CSV file path.");
+      return;
+    }
 
   const raw = rows.map(d => ({
     year: +d.year,
@@ -60,4 +70,11 @@
       .style("font-weight", 600)
       .text(s);
   });
+  } catch (error) {
+    console.error("Error loading scenarios data:", error);
+    const svg = d3.select("#scenarios");
+    const g = svg.append("g").attr("transform", "translate(58,28)");
+    g.append("text").attr("x", 0).attr("y", 16).attr("fill", "red")
+      .text(`Error: ${error.message}`);
+  }
 })();

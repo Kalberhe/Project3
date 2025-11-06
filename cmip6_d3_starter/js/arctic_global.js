@@ -1,11 +1,21 @@
 /* global d3 */
 (async function () {
-  // ✅ relative path (no leading slash)
-  const file = "data/arctic_global_annual.csv"; // columns: year, region, anom_c
+  try {
+    // ✅ relative path (no leading slash)
+    const file = "data/arctic_global_annual.csv"; // columns: year, region, anom_c
 
-  // Load + coerce types; accept anom_c or anomaly_c just in case
-  const rows = await d3.csv(file, d3.autoType);
-  console.log("arctic_global loaded rows:", rows.length, rows[0]);
+    // Load + coerce types; accept anom_c or anomaly_c just in case
+    const rows = await d3.csv(file, d3.autoType);
+    console.log("arctic_global loaded rows:", rows.length, rows[0]);
+    
+    if (!rows || rows.length === 0) {
+      console.error("No data loaded from", file);
+      const svg = d3.select("#arcticGlobal");
+      const g = svg.append("g").attr("transform", "translate(58,28)");
+      g.append("text").attr("x", 0).attr("y", 16).attr("fill", "red")
+        .text("Error: No data loaded. Check CSV file path.");
+      return;
+    }
 
   const raw = rows.map(d => ({
     year: +d.year,
@@ -59,4 +69,11 @@
       .style("font-weight", 600)
       .text(r);
   });
+  } catch (error) {
+    console.error("Error loading arctic_global data:", error);
+    const svg = d3.select("#arcticGlobal");
+    const g = svg.append("g").attr("transform", "translate(58,28)");
+    g.append("text").attr("x", 0).attr("y", 16).attr("fill", "red")
+      .text(`Error: ${error.message}`);
+  }
 })();
