@@ -15,7 +15,47 @@
 </style>
 
 <h2>Warming Across the Pacific. 5°S to 5°N by decade</h2>
-<p class="sub">Temperature near the equator between 5° South and 5° North shown decade by decade from bottom to top. Each horizontal band is a decade from 1850 at the bottom to 2010 at the top. Longitude runs left to right across the Pacific.</p>
+<p class="sub">Temperature anomalies near the equator between 5° South and 5° North shown decade by decade from bottom to top. Each horizontal band is a decade from 1850 at the bottom to 2010 at the top. Longitude runs left to right across the Pacific. <strong>Data transformation:</strong> Anomalies are calculated relative to the 1850-1900 baseline period. Values represent decade-wise mean temperature anomalies (°C) aggregated from monthly CMIP6 model outputs. The diverging color scale (Red-Blue) uses red for positive anomalies (warming) and blue for negative anomalies (cooling), centered at zero.</p>
+
+<div style="margin: 14px 0; padding: 12px; background: #f5f5f5; border-radius: 4px;">
+  <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+    <div>
+      <label for="lonFilter" style="font-weight: 500; margin-right: 8px;">Longitude Range:</label>
+      <select id="lonFilter" style="padding: 6px 12px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px;">
+        <option value="all">All Longitudes</option>
+        <option value="0-90">0° to 90°</option>
+        <option value="90-180">90° to 180°</option>
+      </select>
+    </div>
+    <button id="resetFilters" style="padding: 6px 16px; font-size: 14px; background: #666; color: white; border: none; border-radius: 4px; cursor: pointer;">
+      Reset Filters
+    </button>
+  </div>
+  <div style="margin-top: 12px; padding: 12px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">
+    <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+      <div style="flex: 1; min-width: 200px;">
+        <label style="font-weight: 500; display: block; margin-bottom: 6px;">Color Scale Range:</label>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <div style="flex: 1;">
+            <label style="font-size: 12px; color: #666;">Min: <span id="colorMinDisplay">-2.0</span>°C</label>
+            <input type="range" id="colorMinSlider" min="-5" max="0" step="0.1" value="-2.0" style="width: 100%; margin-top: 4px;">
+          </div>
+          <div style="flex: 1;">
+            <label style="font-size: 12px; color: #666;">Max: <span id="colorMaxDisplay">2.0</span>°C</label>
+            <input type="range" id="colorMaxSlider" min="0" max="5" step="0.1" value="2.0" style="width: 100%; margin-top: 4px;">
+          </div>
+          <button id="resetColorScale" style="padding: 6px 12px; font-size: 12px; background: #999; color: white; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap;">
+            Reset Scale
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p style="font-size: 12px; color: #666; margin: 0 0 14px;">
+  <strong>Interactions:</strong> Drag to select area and zoom in • Mouse wheel to zoom in/out • Double-click to reset zoom
+</p>
 <div id="equator-heatmap" class="chart"></div>
 
 <script type="module" src="js/equator.js"></script>
