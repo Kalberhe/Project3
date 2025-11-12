@@ -52,35 +52,52 @@ function updateColorScale() {
 const colorMinSlider = d3.select("#colorMinSlider")
 const colorMaxSlider = d3.select("#colorMaxSlider")
 
-colorMinSlider.attr("min", Math.min(-5, Math.floor(dataMin))).attr("max", 0).attr("value", -lim)
-colorMaxSlider.attr("min", 0).attr("max", Math.max(5, Math.ceil(dataMax))).attr("value", lim)
-
-d3.select("#colorMinDisplay").text(colorMin.toFixed(1))
-d3.select("#colorMaxDisplay").text(colorMax.toFixed(1))
-
-colorMinSlider.on("input", function() {
-  colorMin = +this.value
-  if (colorMin >= colorMax) colorMin = colorMax - 0.1
-  d3.select("#colorMinDisplay").text(colorMin.toFixed(1))
-  updateColorScale()
-})
-
-colorMaxSlider.on("input", function() {
-  colorMax = +this.value
-  if (colorMax <= colorMin) colorMax = colorMin + 0.1
-  d3.select("#colorMaxDisplay").text(colorMax.toFixed(1))
-  updateColorScale()
-})
-
-d3.select("#resetColorScale").on("click", function() {
-  colorMin = -lim
-  colorMax = lim
-  colorMinSlider.property("value", -lim)
-  colorMaxSlider.property("value", lim)
-  d3.select("#colorMinDisplay").text(colorMin.toFixed(1))
-  d3.select("#colorMaxDisplay").text(colorMax.toFixed(1))
-  updateColorScale()
-})
+if (!colorMinSlider.empty() && !colorMaxSlider.empty()) {
+  const minRange = Math.min(-5, Math.floor(dataMin))
+  const maxRange = Math.max(5, Math.ceil(dataMax))
+  
+  colorMinSlider
+    .attr("min", minRange)
+    .attr("max", 0)
+    .attr("value", -lim)
+    .property("value", -lim)
+  
+  colorMaxSlider
+    .attr("min", 0)
+    .attr("max", maxRange)
+    .attr("value", lim)
+    .property("value", lim)
+  
+  const colorMinDisplay = d3.select("#colorMinDisplay")
+  const colorMaxDisplay = d3.select("#colorMaxDisplay")
+  
+  if (!colorMinDisplay.empty()) colorMinDisplay.text(colorMin.toFixed(1))
+  if (!colorMaxDisplay.empty()) colorMaxDisplay.text(colorMax.toFixed(1))
+  
+  colorMinSlider.on("input", function() {
+    colorMin = +this.value
+    if (colorMin >= colorMax) colorMin = colorMax - 0.1
+    if (!colorMinDisplay.empty()) colorMinDisplay.text(colorMin.toFixed(1))
+    updateColorScale()
+  })
+  
+  colorMaxSlider.on("input", function() {
+    colorMax = +this.value
+    if (colorMax <= colorMin) colorMax = colorMin + 0.1
+    if (!colorMaxDisplay.empty()) colorMaxDisplay.text(colorMax.toFixed(1))
+    updateColorScale()
+  })
+  
+  d3.select("#resetColorScale").on("click", function() {
+    colorMin = -lim
+    colorMax = lim
+    colorMinSlider.property("value", -lim)
+    colorMaxSlider.property("value", lim)
+    if (!colorMinDisplay.empty()) colorMinDisplay.text(colorMin.toFixed(1))
+    if (!colorMaxDisplay.empty()) colorMaxDisplay.text(colorMax.toFixed(1))
+    updateColorScale()
+  })
+}
 
 // Filtering
 function applyFilters() {
