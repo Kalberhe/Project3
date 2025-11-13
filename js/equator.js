@@ -26,6 +26,9 @@ const lons = Array.from(new Set(data.map(d => d.lon))).sort(d3.ascending)
 let filteredData = [...data]
 let filteredLons = [...lons]
 let filteredDecades = [...decades]
+let filterRange = [-Infinity, Infinity];
+let filterTop = Infinity;  
+let filterBottom = -Infinity; 
 
 // Scales
 const x = d3.scaleBand().domain(lons).range([0, innerW])
@@ -139,6 +142,8 @@ function redrawHeatmap() {
       .attr("height", y.bandwidth())
       .attr("fill", d => color(d.val))
       .style("cursor", "crosshair")
+      .attr("opacity", d => (d.val >= filterRange[0] && d.val <= filterRange[1]) ? 1 : 0.1) 
+      .style("cursor", "crosshair")
     
     const lonTicksFiltered = desiredTicks.filter(v => filteredLons.includes(v))
     g.append("g").attr("class", "axis").attr("transform", `translate(0,${innerH})`)
@@ -200,45 +205,143 @@ d3.select("#resetFilters").on("click", function() {
 })
 
 // Legend
-const legendH = innerH
-const legendW = 14
-const legendX = margin.left + innerW + 16
-const legendY = margin.top
+const legendH = innerH;
+const legendW = 14;
+const legendX = margin.left + innerW + 16;
+const legendY = margin.top;
 
-const defs = svg.append("defs")
-const gradId = "grad-eq-vertical"
+// Define Gradients and Base Rect
+const defs = svg.append("defs");
+const gradId = "grad-eq-vertical";
 const grad = defs.append("linearGradient")
   .attr("id", gradId)
   .attr("x1", "0%").attr("x2", "0%")
-  .attr("y1", "100%").attr("y2", "0%")
+  .attr("y1", "100%").attr("y2", "0%");
 
+// Initial stops
 d3.range(0, 1.0001, 0.1).forEach(t => {
-  const value = d3.interpolateNumber(colorMin, colorMax)(t)
-  grad.append("stop").attr("offset", `${t * 100}%`).attr("stop-color", color(value))
-})
+  const value = d3.interpolateNumber(colorMin, colorMax)(t);
+  grad.append("stop").attr("offset", `${t * 100}%`).attr("stop-color", color(value));
+});
 
-svg.append("rect")
+// The main colored bar
+const legendBar = svg.append("rect")
+  .attr("class", "legend-bar")
   .attr("x", legendX).attr("y", legendY)
   .attr("width", legendW).attr("height", legendH)
-  .attr("fill", `url(#${gradId})`).attr("stroke", "#ccc")
+  .attr("fill", `url(#${gradId})`)
+  .attr("stroke", "#ccc");
 
-let legendScale = d3.scaleLinear().domain([colorMin, colorMax]).range([legendY + legendH, legendY])
-let legendAxis = d3.axisRight(legendScale).ticks(6)
-let legendG = svg.append("g").attr("transform", `translate(${legendX + legendW},0)`).call(legendAxis)
-svg.append("text").attr("x", legendX + legendW + 34).attr("y", legendY - 6).attr("text-anchor", "end").text("Anomaly (°C)")
+// Axis
+let legendScale = d3.scaleLinear().domain([colorMin, colorMax]).range([legendY + legendH, legendY]);
+let legendAxis = d3.axisRight(legendScale).ticks(6);
+let legendG = svg.append("g").attr("transform", `translate(${legendX + legendW},0)`).call(legendAxis);
 
-function updateColorLegend() {
-  grad.selectAll("stop").remove()
-  d3.range(0, 1.0001, 0.1).forEach(t => {
-    const value = d3.interpolateNumber(colorMin, colorMax)(t)
-    grad.append("stop").attr("offset", `${t * 100}%`).attr("stop-color", color(value))
-  })
+svg.append("text")
+  .attr("x", legendX + legendW + 34)
+  .attr("y", legendY - 6)
+  .attr("text-anchor", "end")
+  .text("Anomaly (°C)");
+
+// SLIDER UI ELEMENTS
+
+const dimmerTop = svg.append("rect")
+  .attr("x", legendX).attr("y", legendY)
+  .attr("width", legendW).attr("height", 0)
+  .attr("fill", "white").attr("opacity", 0.8).style("pointer-events", "none");
+
+const dimmerBottom = svg.append("rect")
+  .attr("x", legendX).attr("y", legendY + legendH)
+  .attr("width", legendW).attr("height", 0)
+  .attr("fill", "white").attr("opacity", 0.8).style("pointer-events", "none");
+
+// The Handles
+const handleStyle = { r: 5, fill: "#333", stroke: "white", strokeWidth: 2, cursor: "ns-resize" };
+
+const handleTop = svg.append("circle")
+  .attr("cx", legendX + legendW / 2)
+  .attr("cy", legendY)
+  .attr("r", 6).attr("fill", "#333").attr("stroke", "white").attr("stroke-width", 2)
+  .style("cursor", "ns-resize");
+
+const handleBottom = svg.append("circle")
+  .attr("cx", legendX + legendW / 2)
+  .attr("cy", legendY + legendH)
+  .attr("r", 6).attr("fill", "#333").attr("stroke", "white").attr("stroke-width", 2)
+  .style("cursor", "ns-resize");
+
+// DRAG BEHAVIOR
+const dragBehavior = d3.drag()
+  .on("drag", function(event) {
+    // Determine which handle is being dragged based on the element
+    const isTopHandle = (this === handleTop.node());
+    
+    let yPos = Math.max(legendY, Math.min(legendY + legendH, event.y));
+    
+    // Convert pixel to temperature value
+    const currentVal = legendScale.invert(yPos);
+    
+    // Get current positions
+    const topY = parseFloat(handleTop.attr("cy"));
+    const bottomY = parseFloat(handleBottom.attr("cy"));
+
+    if (isTopHandle) {
+      // Don't let top handle go below bottom handle
+      if (yPos > bottomY) yPos = bottomY;
+      
+      handleTop.attr("cy", yPos);
+      dimmerTop.attr("height", yPos - legendY);
+      filterTop = legendScale.invert(yPos);
+    } else {
+      // Don't let bottom handle go above top handle
+      if (yPos < topY) yPos = topY;
+      
+      handleBottom.attr("cy", yPos);
+      dimmerBottom.attr("y", yPos).attr("height", (legendY + legendH) - yPos);
+      filterBottom = legendScale.invert(yPos);
+    }
+
+    // Trigger Visual Update
+    applyVolumeFilter();
+  });
+
+handleTop.call(dragBehavior);
+handleBottom.call(dragBehavior);
+
+// Helper to reset sliders when data changes
+function resetSliders() {
+  filterTop = colorMax;
+  filterBottom = colorMin;
   
-  legendScale = d3.scaleLinear().domain([colorMin, colorMax]).range([legendY + legendH, legendY])
-  legendAxis = d3.axisRight(legendScale).ticks(6)
-  legendG.call(legendAxis)
+  handleTop.attr("cy", legendY);
+  dimmerTop.attr("height", 0);
+  
+  handleBottom.attr("cy", legendY + legendH);
+  dimmerBottom.attr("y", legendY + legendH).attr("height", 0);
+  
+  applyVolumeFilter();
 }
 
+function applyVolumeFilter() {
+    const isReset = (Math.abs(filterTop - colorMax) < 0.1 && Math.abs(filterBottom - colorMin) < 0.1);
+
+    g.selectAll("rect.heatmap-cell")
+     .attr("opacity", d => {
+        if (isReset) return 1;
+        const activeMax = Math.max(filterTop, filterBottom);
+        const activeMin = Math.min(filterTop, filterBottom);
+        
+        return (d.val <= activeMax && d.val >= activeMin) ? 1 : 0.05; // 0.05 opacity for "off"
+     });
+}
+
+function updateColorLegend() {
+    legendScale = d3.scaleLinear().domain([colorMin, colorMax]).range([legendY + legendH, legendY]);
+    legendAxis = d3.axisRight(legendScale).ticks(6);
+    legendG.call(legendAxis);
+    
+    resetSliders();
+}
 // Tooltip
 const tip = svg.append("g").attr("class", "tooltip").style("display", "none")
 tip.append("rect").attr("width", 190).attr("height", 46).attr("fill", "white").attr("stroke", "#ccc").attr("rx", 4)
@@ -327,6 +430,8 @@ function updateVisualization() {
       .attr("width", x.bandwidth())
       .attr("height", y.bandwidth())
       .attr("fill", d => color(d.val))
+      .style("cursor", "crosshair")
+      .attr("opacity", d => (d.val >= filterRange[0] && d.val <= filterRange[1]) ? 1 : 0.1)
       .style("cursor", "crosshair")
     
     const lonTicksFiltered = desiredTicks.filter(v => currentXDomain.includes(v))
