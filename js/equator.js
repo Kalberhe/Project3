@@ -1,18 +1,27 @@
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm"
 
-// Configuration
 const url = "data/equator_belt_longitude_decadal.csv"
-const margin = { top: 20, right: 70, bottom: 60, left: 80 }
-const width = 980, height = 520
+
+const margin = { top: 20, right: 120, bottom: 60, left: 80 }
+const width = 1080
+const height = 560
+
 const innerW = width - margin.left - margin.right
 const innerH = height - margin.top - margin.bottom
 
-// Setup SVG
-const svg = d3.select("#equator-heatmap").append("svg").attr("viewBox", [0, 0, width, height])
-const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`).classed("hover-target", true)
+const svg = d3.select("#equator-heatmap")
+  .append("svg")
+  .attr("viewBox", [0, 0, width, height])
 
-// Load and prepare data
-const data = await d3.csv(url, d => ({ decade: +d.decade, lon: +d.lon, val: +d.tas_anom_c_mean }))
+const g = svg.append("g")
+  .attr("transform", `translate(${margin.left},${margin.top})`)
+  .classed("hover-target", true)
+
+let data = await d3.csv(url, d => ({
+  decade: +d.decade,
+  lon: +d.lon,
+  val: +d.tas_anom_c_mean
+}))
 
 if (!data.some(d => d.lon === 180)) {
   const neg180 = data.filter(d => d.lon === -180)
@@ -22,532 +31,556 @@ if (!data.some(d => d.lon === 180)) {
 const decades = Array.from(new Set(data.map(d => d.decade))).sort(d3.ascending)
 const lons = Array.from(new Set(data.map(d => d.lon))).sort(d3.ascending)
 
-// Filtered data state
 let filteredData = [...data]
 let filteredLons = [...lons]
 let filteredDecades = [...decades]
-let filterRange = [-Infinity, Infinity];
-let filterTop = Infinity;  
-let filterBottom = -Infinity; 
 
-// Scales
-const x = d3.scaleBand().domain(lons).range([0, innerW])
-const y = d3.scaleBand().domain(decades).range([innerH, 0])
+const x = d3.scaleBand()
+  .domain(lons)
+  .range([0, innerW])
 
-// Color scale
+const y = d3.scaleBand()
+  .domain(decades)
+  .range([innerH, 0])
+
 const extent = d3.extent(data, d => d.val)
-const dataMin = extent[0] ?? 0
-const dataMax = extent[1] ?? 0
-const lim = Math.max(Math.abs(dataMin), Math.abs(dataMax)) || 1e-6
+const lim = Math.max(Math.abs(extent[0]), Math.abs(extent[1]))
 
 let colorMin = -lim
 let colorMax = lim
-let color = d3.scaleDiverging(d3.interpolateRdBu).domain([colorMax, 0, colorMin])
 
-function updateColorScale() {
-  color = d3.scaleDiverging(d3.interpolateRdBu).domain([colorMax, 0, colorMin])
-  updateColorLegend()
-  redrawHeatmap()
-  if (typeof updateVisualization === 'function') updateVisualization()
-}
+let color = d3.scaleDiverging(d3.interpolateRdBu)
+  .domain([colorMax, 0, colorMin])
 
-// Color scale controls
-const colorMinSlider = d3.select("#colorMinSlider")
-const colorMaxSlider = d3.select("#colorMaxSlider")
-
-colorMinSlider.attr("min", Math.min(-5, Math.floor(dataMin))).attr("max", 0).attr("value", -lim)
-colorMaxSlider.attr("min", 0).attr("max", Math.max(5, Math.ceil(dataMax))).attr("value", lim)
-
-d3.select("#colorMinDisplay").text(colorMin.toFixed(1))
-d3.select("#colorMaxDisplay").text(colorMax.toFixed(1))
-
-colorMinSlider.on("input", function() {
-  colorMin = +this.value
-  if (colorMin >= colorMax) colorMin = colorMax - 0.1
-  d3.select("#colorMinDisplay").text(colorMin.toFixed(1))
-  updateColorScale()
-})
-
-colorMaxSlider.on("input", function() {
-  colorMax = +this.value
-  if (colorMax <= colorMin) colorMax = colorMin + 0.1
-  d3.select("#colorMaxDisplay").text(colorMax.toFixed(1))
-  updateColorScale()
-})
-
-d3.select("#resetColorScale").on("click", function() {
-  colorMin = -lim
-  colorMax = lim
-  colorMinSlider.property("value", -lim)
-  colorMaxSlider.property("value", lim)
-  d3.select("#colorMinDisplay").text(colorMin.toFixed(1))
-  d3.select("#colorMaxDisplay").text(colorMax.toFixed(1))
-  updateColorScale()
-})
-
-// Filtering
-function applyFilters() {
-  try {
-    const lonFilterValue = d3.select("#lonFilter").property("value")
-    
-    if (lonFilterValue === "0-90") {
-      filteredData = data.filter(d => d.lon >= 0 && d.lon <= 90)
-    } else if (lonFilterValue === "90-180") {
-      filteredData = data.filter(d => d.lon >= 90 && d.lon <= 180)
-    } else {
-      filteredData = [...data]
-    }
-    
-    if (filteredData.length === 0) return
-    
-    filteredLons = Array.from(new Set(filteredData.map(d => d.lon))).sort(d3.ascending)
-    filteredDecades = Array.from(new Set(filteredData.map(d => d.decade))).sort(d3.ascending)
-    
-    if (filteredLons.length === 0 || filteredDecades.length === 0) return
-    
-    x.domain(filteredLons)
-    y.domain(filteredDecades)
-    
-    currentXDomain = [...filteredLons]
-    currentYDomain = [...filteredDecades]
-    xOriginal.domain(filteredLons)
-    yOriginal.domain(filteredDecades)
-    
-    redrawHeatmap()
-  } catch (error) {
-    console.error("Error in applyFilters:", error)
-  }
-}
-
-// Drawing functions
-function redrawHeatmap() {
-  try {
-    if (!filteredData || filteredData.length === 0 || !filteredLons || filteredLons.length === 0 || !filteredDecades || filteredDecades.length === 0) return
-    
-    g.selectAll("rect.heatmap-cell").remove()
-    g.selectAll(".axis").remove()
-    g.selectAll("text").filter(function() {
-      const text = d3.select(this).text()
-      return text === "Longitude" || text === "Decade"
-    }).remove()
-    
-    g.selectAll("rect.heatmap-cell")
-      .data(filteredData)
-      .enter()
-      .append("rect")
-      .attr("class", "heatmap-cell")
-      .attr("x", d => x(d.lon) || 0)
-      .attr("y", d => y(d.decade) || 0)
-      .attr("width", x.bandwidth())
-      .attr("height", y.bandwidth())
-      .attr("fill", d => color(d.val))
-      .style("cursor", "crosshair")
-      .attr("opacity", d => (d.val >= filterRange[0] && d.val <= filterRange[1]) ? 1 : 0.1) 
-      .style("cursor", "crosshair")
-    
-    const lonTicksFiltered = desiredTicks.filter(v => filteredLons.includes(v))
-    g.append("g").attr("class", "axis").attr("transform", `translate(0,${innerH})`)
-      .call(d3.axisBottom(x).tickValues(lonTicksFiltered.length > 0 ? lonTicksFiltered : filteredLons.filter((_, i) => i % Math.ceil(filteredLons.length / 12) === 0)).tickFormat(degLabel).tickSizeOuter(0))
-    g.append("g").attr("class", "axis").call(d3.axisLeft(y).tickValues(filteredDecades).tickSizeOuter(0))
-    
-    g.append("text").attr("x", innerW / 2).attr("y", innerH + 44).attr("text-anchor", "middle").text("Longitude")
-    g.append("text").attr("transform", `rotate(-90)`).attr("x", -innerH / 2).attr("y", -56).attr("text-anchor", "middle").text("Decade")
-    
-    if (typeof brush !== 'undefined') {
-      brush.extent([[0, 0], [innerW, innerH]])
-      g.select(".brush").remove()
-      const brushG = g.append("g").attr("class", "brush").call(brush)
-      brushG.select(".overlay")
-        .style("cursor", "crosshair")
-        .style("pointer-events", "all")
-        .on("dblclick.brush", function(event) {
-          event.stopPropagation()
-          resetZoom()
-        })
-    }
-  } catch (error) {
-    console.error("Error in redrawHeatmap:", error)
-  }
-}
-
-// Axis helpers
 const desiredTicks = d3.range(-180, 181, 30)
-const degLabel = d => d === 0 ? "0°" : (d < 0 ? `${Math.abs(d)}°W` : `${d}°E`)
 
-// Zoom state
-const xOriginal = x.copy()
-const yOriginal = y.copy()
-let currentXDomain = [...filteredLons]
-let currentYDomain = [...filteredDecades]
+const degLabel = d => {
+  if (d === 0) return "0°"
+  if (d < 0) return Math.abs(d) + "°W"
+  return d + "°E"
+}
 
-// Brush for zoom
-let isDragging = false
-const brush = d3.brush()
-  .extent([[0, 0], [innerW, innerH]])
-  .on("start", () => { isDragging = true })
-  .on("end", brushed)
+const tip = svg.append("g")
+  .attr("class", "tooltip")
+  .style("display", "none")
 
-const brushG = g.append("g").attr("class", "brush").call(brush)
-brushG.select(".overlay")
-  .style("cursor", "crosshair")
-  .style("pointer-events", "all")
-  .on("dblclick.brush", function(event) {
-    event.stopPropagation()
-    resetZoom()
-  })
+tip.append("rect")
+  .attr("width", 210)
+  .attr("height", 83)
+  .attr("fill", "white")
+  .attr("stroke", "#ccc")
+  .attr("rx", 4)
 
-// Filter event listeners
+const ttext = tip.append("text")
+  .attr("x", 6)
+  .attr("y", 16)
+  .style("font-size", 12)
+
+const idx = d3.index(data, d => d.decade, d => d.lon)
+
+function computeRegionalMeans(decade) {
+  const rows = data.filter(d => d.decade === decade)
+
+  const central = rows.filter(d => d.lon >= 0 && d.lon <= 90)
+  const western = rows.filter(d => d.lon >= 90 && d.lon <= 180)
+
+  const mean = arr => d3.mean(arr, d => d.val)
+
+  return {
+    c: mean(central),
+    w: mean(western),
+    diff: mean(central) - mean(western)
+  }
+}
+
+function applyFilters() {
+  const sel = d3.select("#lonFilter").property("value")
+
+  if (sel === "0-90") {
+    filteredData = data.filter(d => d.lon >= 0 && d.lon <= 90)
+  } else if (sel === "90-180") {
+    filteredData = data.filter(d => d.lon >= 90 && d.lon <= 180)
+  } else {
+    filteredData = [...data]
+  }
+
+  filteredLons = Array.from(new Set(filteredData.map(d => d.lon))).sort(d3.ascending)
+  filteredDecades = Array.from(new Set(filteredData.map(d => d.decade))).sort(d3.ascending)
+
+  x.domain(filteredLons)
+  y.domain(filteredDecades)
+
+  currentXDomain = [...filteredLons]
+  currentYDomain = [...filteredDecades]
+
+  redrawHeatmap()
+}
+
 d3.select("#lonFilter").on("change", applyFilters)
-d3.select("#resetFilters").on("click", function() {
+
+d3.select("#resetFilters").on("click", () => {
   d3.select("#lonFilter").property("value", "all")
   applyFilters()
   resetZoom()
 })
 
-// Legend
-const legendH = innerH;
-const legendW = 14;
-const legendX = margin.left + innerW + 16;
-const legendY = margin.top;
+function redrawHeatmap() {
+  g.selectAll("rect.heatmap-cell").remove()
+  g.selectAll(".axis").remove()
+  g.selectAll(".axis-label").remove()
 
-// Define Gradients and Base Rect
-const defs = svg.append("defs");
-const gradId = "grad-eq-vertical";
-const grad = defs.append("linearGradient")
-  .attr("id", gradId)
-  .attr("x1", "0%").attr("x2", "0%")
-  .attr("y1", "100%").attr("y2", "0%");
+  g.selectAll("rect.heatmap-cell")
+    .data(filteredData)
+    .enter()
+    .append("rect")
+    .attr("class", "heatmap-cell")
+    .attr("x", d => x(d.lon))
+    .attr("y", d => y(d.decade))
+    .attr("width", x.bandwidth())
+    .attr("height", y.bandwidth())
+    .attr("fill", d => color(d.val))
 
-// Initial stops
-d3.range(0, 1.0001, 0.1).forEach(t => {
-  const value = d3.interpolateNumber(colorMin, colorMax)(t);
-  grad.append("stop").attr("offset", `${t * 100}%`).attr("stop-color", color(value));
-});
+  const lonTicks = desiredTicks.filter(v => filteredLons.includes(v))
+  const bottomAxis = d3.axisBottom(x)
+    .tickValues(lonTicks.length > 0 ? lonTicks : filteredLons)
+    .tickFormat(degLabel)
 
-// The main colored bar
-const legendBar = svg.append("rect")
-  .attr("class", "legend-bar")
-  .attr("x", legendX).attr("y", legendY)
-  .attr("width", legendW).attr("height", legendH)
-  .attr("fill", `url(#${gradId})`)
-  .attr("stroke", "#ccc");
+  g.append("g")
+    .attr("class", "axis")
+    .attr("transform", `translate(0,${innerH})`)
+    .call(bottomAxis)
 
-// Axis
-let legendScale = d3.scaleLinear().domain([colorMin, colorMax]).range([legendY + legendH, legendY]);
-let legendAxis = d3.axisRight(legendScale).ticks(6);
-let legendG = svg.append("g").attr("transform", `translate(${legendX + legendW},0)`).call(legendAxis);
+  g.append("g")
+    .attr("class", "axis")
+    .call(d3.axisLeft(y).tickValues(filteredDecades))
 
-svg.append("text")
-  .attr("x", legendX + legendW + 34)
-  .attr("y", legendY - 6)
-  .attr("text-anchor", "end")
-  .text("Anomaly (°C)");
+  g.append("text")
+    .attr("class", "axis-label")
+    .attr("x", innerW / 2)
+    .attr("y", innerH + 44)
+    .attr("text-anchor", "middle")
+    .text("Longitude")
 
-// SLIDER UI ELEMENTS
-
-const dimmerTop = svg.append("rect")
-  .attr("x", legendX).attr("y", legendY)
-  .attr("width", legendW).attr("height", 0)
-  .attr("fill", "white").attr("opacity", 0.8).style("pointer-events", "none");
-
-const dimmerBottom = svg.append("rect")
-  .attr("x", legendX).attr("y", legendY + legendH)
-  .attr("width", legendW).attr("height", 0)
-  .attr("fill", "white").attr("opacity", 0.8).style("pointer-events", "none");
-
-// The Handles
-const handleStyle = { r: 5, fill: "#333", stroke: "white", strokeWidth: 2, cursor: "ns-resize" };
-
-const handleTop = svg.append("circle")
-  .attr("cx", legendX + legendW / 2)
-  .attr("cy", legendY)
-  .attr("r", 6).attr("fill", "#333").attr("stroke", "white").attr("stroke-width", 2)
-  .style("cursor", "ns-resize");
-
-const handleBottom = svg.append("circle")
-  .attr("cx", legendX + legendW / 2)
-  .attr("cy", legendY + legendH)
-  .attr("r", 6).attr("fill", "#333").attr("stroke", "white").attr("stroke-width", 2)
-  .style("cursor", "ns-resize");
-
-// DRAG BEHAVIOR
-const dragBehavior = d3.drag()
-  .on("drag", function(event) {
-    // Determine which handle is being dragged based on the element
-    const isTopHandle = (this === handleTop.node());
-    
-    let yPos = Math.max(legendY, Math.min(legendY + legendH, event.y));
-    
-    // Convert pixel to temperature value
-    const currentVal = legendScale.invert(yPos);
-    
-    // Get current positions
-    const topY = parseFloat(handleTop.attr("cy"));
-    const bottomY = parseFloat(handleBottom.attr("cy"));
-
-    if (isTopHandle) {
-      // Don't let top handle go below bottom handle
-      if (yPos > bottomY) yPos = bottomY;
-      
-      handleTop.attr("cy", yPos);
-      dimmerTop.attr("height", yPos - legendY);
-      filterTop = legendScale.invert(yPos);
-    } else {
-      // Don't let bottom handle go above top handle
-      if (yPos < topY) yPos = topY;
-      
-      handleBottom.attr("cy", yPos);
-      dimmerBottom.attr("y", yPos).attr("height", (legendY + legendH) - yPos);
-      filterBottom = legendScale.invert(yPos);
-    }
-
-    // Trigger Visual Update
-    applyVolumeFilter();
-  });
-
-handleTop.call(dragBehavior);
-handleBottom.call(dragBehavior);
-
-// Helper to reset sliders when data changes
-function resetSliders() {
-  filterTop = colorMax;
-  filterBottom = colorMin;
-  
-  handleTop.attr("cy", legendY);
-  dimmerTop.attr("height", 0);
-  
-  handleBottom.attr("cy", legendY + legendH);
-  dimmerBottom.attr("y", legendY + legendH).attr("height", 0);
-  
-  applyVolumeFilter();
+  g.append("text")
+    .attr("class", "axis-label")
+    .attr("transform", "rotate(-90)")
+    .attr("x", -innerH / 2)
+    .attr("y", -56)
+    .attr("text-anchor", "middle")
+    .text("Decade")
 }
 
-function applyVolumeFilter() {
-    const isReset = (Math.abs(filterTop - colorMax) < 0.1 && Math.abs(filterBottom - colorMin) < 0.1);
-
-    g.selectAll("rect.heatmap-cell")
-     .attr("opacity", d => {
-        if (isReset) return 1;
-        const activeMax = Math.max(filterTop, filterBottom);
-        const activeMin = Math.min(filterTop, filterBottom);
-        
-        return (d.val <= activeMax && d.val >= activeMin) ? 1 : 0.05; // 0.05 opacity for "off"
-     });
-}
-
-function updateColorLegend() {
-    legendScale = d3.scaleLinear().domain([colorMin, colorMax]).range([legendY + legendH, legendY]);
-    legendAxis = d3.axisRight(legendScale).ticks(6);
-    legendG.call(legendAxis);
-    
-    resetSliders();
-}
-// Tooltip
-const tip = svg.append("g").attr("class", "tooltip").style("display", "none")
-tip.append("rect").attr("width", 190).attr("height", 46).attr("fill", "white").attr("stroke", "#ccc").attr("rx", 4)
-const ttext = tip.append("text").attr("x", 6).attr("y", 16).style("font-size", 12)
-const idx = d3.index(data, d => d.decade, d => d.lon)
-
-// Zoom functions
-function brushed(event) {
-  try {
-    isDragging = false
-    if (!event.selection) return
-    
-    const [[x0, y0], [x1, y1]] = event.selection
-    const selX0 = Math.min(x0, x1)
-    const selX1 = Math.max(x0, x1)
-    const selY0 = Math.min(y0, y1)
-    const selY1 = Math.max(y0, y1)
-    
-    const selectionWidth = selX1 - selX0
-    const selectionHeight = selY1 - selY0
-    if (selectionWidth < 10 || selectionHeight < 10) {
-      g.select(".brush").call(brush.move, null)
-      return
-    }
-    
-    const selectedLons = currentXDomain.filter(lon => {
-      const xPos = x(lon)
-      if (xPos === undefined || isNaN(xPos)) return false
-      return !(xPos + x.bandwidth() < selX0 || xPos > selX1)
-    })
-    
-    const selectedDecades = currentYDomain.filter(decade => {
-      const yPos = y(decade)
-      if (yPos === undefined || isNaN(yPos)) return false
-      return !(yPos + y.bandwidth() < selY0 || yPos > selY1)
-    })
-    
-    if (selectedLons.length === 0 || selectedDecades.length === 0) {
-      g.select(".brush").call(brush.move, null)
-      return
-    }
-    
-    currentXDomain = selectedLons
-    currentYDomain = selectedDecades
-    x.domain(currentXDomain)
-    y.domain(currentYDomain)
-    
-    updateVisualization()
-    g.select(".brush").call(brush.move, null)
-  } catch (error) {
-    console.error("Error in brush zoom:", error)
-  }
-}
-
-function resetZoom() {
-  currentXDomain = [...xOriginal.domain()]
-  currentYDomain = [...yOriginal.domain()]
-  x.domain(currentXDomain)
-  y.domain(currentYDomain)
-  updateVisualization()
-  g.select(".brush").call(brush.move, null)
-}
-
-function updateVisualization() {
-  try {
-    const visibleData = filteredData.filter(d => 
-      currentXDomain.includes(d.lon) && currentYDomain.includes(d.decade)
-    )
-    
-    if (visibleData.length === 0) return
-    
-    g.selectAll("rect.heatmap-cell").remove()
-    g.selectAll(".axis").remove()
-    g.selectAll("text").filter(function() {
-      const text = d3.select(this).text()
-      return text === "Longitude" || text === "Decade"
-    }).remove()
-  
-    g.selectAll("rect.heatmap-cell")
-      .data(visibleData)
-      .enter()
-      .append("rect")
-      .attr("class", "heatmap-cell")
-      .attr("x", d => x(d.lon) || 0)
-      .attr("y", d => y(d.decade) || 0)
-      .attr("width", x.bandwidth())
-      .attr("height", y.bandwidth())
-      .attr("fill", d => color(d.val))
-      .style("cursor", "crosshair")
-      .attr("opacity", d => (d.val >= filterRange[0] && d.val <= filterRange[1]) ? 1 : 0.1)
-      .style("cursor", "crosshair")
-    
-    const lonTicksFiltered = desiredTicks.filter(v => currentXDomain.includes(v))
-    
-    g.append("g").attr("class", "axis").attr("transform", `translate(0,${innerH})`)
-      .call(d3.axisBottom(x).tickValues(lonTicksFiltered.length > 0 ? lonTicksFiltered : currentXDomain.filter((_, i) => i % Math.ceil(currentXDomain.length / 8) === 0)).tickFormat(degLabel).tickSizeOuter(0))
-    g.append("g").attr("class", "axis").call(d3.axisLeft(y).tickValues(currentYDomain).tickSizeOuter(0))
-    
-    g.append("text").attr("x", innerW / 2).attr("y", innerH + 44).attr("text-anchor", "middle").text("Longitude")
-    g.append("text").attr("transform", `rotate(-90)`).attr("x", -innerH / 2).attr("y", -56).attr("text-anchor", "middle").text("Decade")
-    
-    brush.extent([[0, 0], [innerW, innerH]])
-    g.select(".brush").remove()
-    const brushG = g.append("g").attr("class", "brush").call(brush)
-    brushG.select(".overlay")
-      .style("cursor", "crosshair")
-      .style("pointer-events", "all")
-      .on("dblclick.brush", function(event) {
-        event.stopPropagation()
-        resetZoom()
-      })
-  } catch (error) {
-    console.error("Error updating visualization:", error)
-  }
-}
-
-// Mouse wheel zoom
-g.on("wheel", function(event) {
-  try {
-    event.preventDefault()
-    if (isDragging) return
-    
-    const [mx, my] = d3.pointer(event, this)
-    const delta = -event.deltaY * 0.001
-    const zoomFactor = Math.exp(delta)
-    
-    const centerLonIdx = Math.max(0, Math.min(currentXDomain.length - 1, Math.floor(mx / x.bandwidth())))
-    const centerDecadeIdx = Math.max(0, Math.min(currentYDomain.length - 1, Math.floor(my / y.bandwidth())))
-    const centerLon = currentXDomain[centerLonIdx]
-    const centerDecade = currentYDomain[centerDecadeIdx]
-    
-    const fullLonIdx = lons.indexOf(centerLon)
-    const fullDecadeIdx = decades.indexOf(centerDecade)
-    
-    if (fullLonIdx === -1 || fullDecadeIdx === -1) return
-    
-    const newLonCount = Math.max(2, Math.min(lons.length, Math.round(currentXDomain.length / zoomFactor)))
-    const newDecadeCount = Math.max(2, Math.min(decades.length, Math.round(currentYDomain.length / zoomFactor)))
-    
-    const lonStartIdx = Math.max(0, Math.floor(fullLonIdx - newLonCount / 2))
-    const lonEndIdx = Math.min(lons.length, lonStartIdx + newLonCount)
-    const newLonDomain = lons.slice(lonStartIdx, lonEndIdx)
-    
-    const decStartIdx = Math.max(0, Math.floor(fullDecadeIdx - newDecadeCount / 2))
-    const decEndIdx = Math.min(decades.length, decStartIdx + newDecadeCount)
-    const newDecadeDomain = decades.slice(decStartIdx, decEndIdx)
-    
-    if (newLonDomain.length === 0 || newDecadeDomain.length === 0) return
-    
-    currentXDomain = newLonDomain
-    currentYDomain = newDecadeDomain
-    x.domain(currentXDomain)
-    y.domain(currentYDomain)
-    
-    updateVisualization()
-  } catch (error) {
-    console.error("Error in wheel zoom:", error)
-  }
-})
-
-// Tooltip
 g.on("mousemove", function (event) {
   const [mx, my] = d3.pointer(event, this)
-  
+
   if (mx < 0 || mx > innerW || my < 0 || my > innerH) {
     tip.style("display", "none")
     return
   }
-  
-  const ix = Math.max(0, Math.min(x.domain().length - 1, Math.floor(mx / x.bandwidth())))
-  const dLon = x.domain()[ix]
-  
-  let dDec = null
-  for (const decade of y.domain()) {
-    const yPos = y(decade)
-    if (yPos === undefined || isNaN(yPos)) continue
-    const yEnd = yPos + y.bandwidth()
-    if (my >= yPos && my < yEnd) {
-      dDec = decade
+
+  const ix = Math.floor(mx / x.bandwidth())
+  const lon = x.domain()[ix]
+
+  let dec = null
+  for (const d of y.domain()) {
+    const y0 = y(d)
+    if (my >= y0 && my < y0 + y.bandwidth()) {
+      dec = d
       break
     }
   }
-  
-  if (dDec === null) {
-    const normalizedY = innerH - my
-    const iy = Math.max(0, Math.min(y.domain().length - 1, Math.floor(normalizedY / y.bandwidth())))
-    dDec = y.domain()[iy]
-  }
-  
-  const d = idx.get(dDec)?.get(dLon)
-  if (!d) {
+
+  if (dec === null) return
+
+  const cell = idx.get(dec)?.get(lon)
+  if (!cell) {
     tip.style("display", "none")
     return
   }
-  
-  const labelLon = degLabel(dLon)
-  const lines = [`Decade ${dDec}`, `Lon ${labelLon}, ${d.val.toFixed(2)} °C`]
-  ttext.selectAll("tspan").data(lines).join("tspan")
-    .attr("x", 6)
-    .attr("dy", (_, i) => i === 0 ? 0 : 14)
-    .text(v => v)
-  
-  const tx = Math.min(mx + 10 + margin.left, width - 190)
-  const ty = Math.max(margin.top, my - 24 + margin.top)
-  tip.attr("transform", `translate(${tx},${ty})`).style("display", null)
-}).on("mouseout", () => tip.style("display", "none"))
 
-// Initial draw
+  const region = computeRegionalMeans(dec)
+
+  const lines = [
+    `Decade ${dec}`,
+    `Lon ${degLabel(lon)}: ${cell.val.toFixed(2)} °C`,
+    `Central mean: ${region.c.toFixed(2)} °C`,
+    `Western mean: ${region.w.toFixed(2)} °C`,
+    `Difference: ${region.diff.toFixed(2)} °C`
+  ]
+
+  ttext.selectAll("tspan")
+    .data(lines)
+    .join("tspan")
+    .attr("x", 6)
+    .attr("dy", (d, i) => i === 0 ? 0 : 14)
+    .text(d => d)
+
+  const lineHeight = 14
+  const padding = 10
+  const boxHeight = lines.length * lineHeight + padding
+
+  tip.select("rect")
+    .attr("height", boxHeight)
+
+  const tx = Math.min(mx + margin.left + 16, width - 210)
+  const ty = my + margin.top - 20
+
+  tip.attr("transform", `translate(${tx},${ty})`)
+    .style("display", null)
+})
+
+g.on("mouseout", () => tip.style("display", "none"))
+
+const legendH = innerH
+const legendW = 14
+const legendX = margin.left + innerW + 24
+const legendY = margin.top
+
+const defs = svg.append("defs")
+const gradId = "grad-eq-vertical"
+
+const grad = defs.append("linearGradient")
+  .attr("id", gradId)
+  .attr("x1", "0%").attr("x2", "0%")
+  .attr("y1", "100%").attr("y2", "0%")
+
+function updateGradientStops() {
+  grad.selectAll("stop").remove()
+
+  d3.range(0, 1.0001, 0.1).forEach(t => {
+    const value = d3.interpolateNumber(colorMin, colorMax)(t)
+    grad.append("stop")
+      .attr("offset", `${t * 100}%`)
+      .attr("stop-color", color(value))
+  })
+}
+
+updateGradientStops()
+
+const legendBar = svg.append("rect")
+  .attr("x", legendX)
+  .attr("y", legendY)
+  .attr("width", legendW)
+  .attr("height", legendH)
+  .attr("fill", `url(#${gradId})`)
+  .attr("stroke", "#ccc")
+
+let legendScale = d3.scaleLinear()
+  .domain([colorMin, colorMax])
+  .range([legendY + legendH, legendY])
+
+let legendAxis = d3.axisRight(legendScale).ticks(6)
+
+let legendG = svg.append("g")
+  .attr("transform", `translate(${legendX + legendW},0)`)
+  .call(legendAxis)
+
+svg.append("text")
+  .attr("x", legendX + legendW + 32)
+  .attr("y", legendY - 6)
+  .attr("text-anchor", "end")
+  .style("font-size", 12)
+  .text("Anomaly (°C)")
+
+const dimmerTop = svg.append("rect")
+  .attr("x", legendX)
+  .attr("y", legendY)
+  .attr("width", legendW)
+  .attr("height", 0)
+  .attr("fill", "white")
+  .attr("opacity", 0.8)
+  .style("pointer-events", "none")
+
+const dimmerBottom = svg.append("rect")
+  .attr("x", legendX)
+  .attr("y", legendY + legendH)
+  .attr("width", legendW)
+  .attr("height", 0)
+  .attr("fill", "white")
+  .attr("opacity", 0.8)
+  .style("pointer-events", "none")
+
+let filterTop = colorMax
+let filterBottom = colorMin
+
+const handleTop = svg.append("circle")
+  .attr("cx", legendX + legendW / 2)
+  .attr("cy", legendY)
+  .attr("r", 6)
+  .attr("fill", "#333")
+  .attr("stroke", "white")
+  .attr("stroke-width", 2)
+  .style("cursor", "ns-resize")
+
+const handleBottom = svg.append("circle")
+  .attr("cx", legendX + legendW / 2)
+  .attr("cy", legendY + legendH)
+  .attr("r", 6)
+  .attr("fill", "#333")
+  .attr("stroke", "white")
+  .attr("stroke-width", 2)
+  .style("cursor", "ns-resize")
+
+function applyVolumeFilter() {
+  const reset =
+    Math.abs(filterTop - colorMax) < 0.1 &&
+    Math.abs(filterBottom - colorMin) < 0.1
+
+  g.selectAll("rect.heatmap-cell")
+    .attr("opacity", d => {
+      if (reset) return 1
+      const lo = Math.min(filterTop, filterBottom)
+      const hi = Math.max(filterTop, filterBottom)
+      return d.val >= lo && d.val <= hi ? 1 : 0.05
+    })
+}
+
+const dragBehavior = d3.drag()
+  .on("drag", function (event) {
+    const isTop = this === handleTop.node()
+
+    let yPos = Math.max(legendY, Math.min(legendY + legendH, event.y))
+
+    const topY = +handleTop.attr("cy")
+    const bottomY = +handleBottom.attr("cy")
+
+    if (isTop && yPos > bottomY) yPos = bottomY
+    if (!isTop && yPos < topY) yPos = topY
+
+    if (isTop) {
+      handleTop.attr("cy", yPos)
+      dimmerTop.attr("height", yPos - legendY)
+      filterTop = legendScale.invert(yPos)
+    } else {
+      handleBottom.attr("cy", yPos)
+      dimmerBottom
+        .attr("y", yPos)
+        .attr("height", (legendY + legendH) - yPos)
+      filterBottom = legendScale.invert(yPos)
+    }
+
+    applyVolumeFilter()
+  })
+
+handleTop.call(dragBehavior)
+handleBottom.call(dragBehavior)
+
+function resetSliders() {
+  filterTop = colorMax
+  filterBottom = colorMin
+
+  handleTop.attr("cy", legendY)
+  handleBottom.attr("cy", legendY + legendH)
+
+  dimmerTop.attr("height", 0)
+  dimmerBottom.attr("y", legendY + legendH).attr("height", 0)
+
+  applyVolumeFilter()
+}
+
+function updateColorLegend() {
+  color = d3.scaleDiverging(d3.interpolateRdBu)
+    .domain([colorMax, 0, colorMin])
+
+  updateGradientStops()
+
+  legendScale = d3.scaleLinear()
+    .domain([colorMin, colorMax])
+    .range([legendY + legendH, legendY])
+
+  legendAxis = d3.axisRight(legendScale).ticks(6)
+  legendG.call(legendAxis)
+
+  resetSliders()
+}
+
+d3.select("#colorMinSlider").on("input", function () {
+  colorMin = +this.value
+  if (colorMin >= colorMax) colorMin = colorMax - 0.1
+  d3.select("#colorMinDisplay").text(colorMin.toFixed(1))
+  updateColorLegend()
+})
+
+d3.select("#colorMaxSlider").on("input", function () {
+  colorMax = +this.value
+  if (colorMax <= colorMin) colorMax = colorMin + 0.1
+  d3.select("#colorMaxDisplay").text(colorMax.toFixed(1))
+  updateColorLegend()
+})
+
+d3.select("#resetColorScale").on("click", () => {
+  colorMin = -lim
+  colorMax = lim
+  d3.select("#colorMinSlider").property("value", -lim)
+  d3.select("#colorMaxSlider").property("value", lim)
+  d3.select("#colorMinDisplay").text(colorMin.toFixed(1))
+  d3.select("#colorMaxDisplay").text(colorMax.toFixed(1))
+  updateColorLegend()
+})
+
+let currentXDomain = [...filteredLons]
+let currentYDomain = [...filteredDecades]
+
+let isDragging = false
+
+const brush = d3.brush()
+  .extent([[0, 0], [innerW, innerH]])
+  .on("start", () => { isDragging = true })
+  .on("end", brushed)
+
+const brushG = g.append("g")
+  .attr("class", "brush")
+  .call(brush)
+
+brushG.select(".overlay")
+  .style("cursor", "crosshair")
+  .on("dblclick.brush", event => {
+    event.stopPropagation()
+    resetZoom()
+  })
+
+function brushed(event) {
+  isDragging = false
+  if (!event.selection) return
+
+  const [[x0, y0], [x1, y1]] = event.selection
+
+  if (x1 - x0 < 10 || y1 - y0 < 10) {
+    g.select(".brush").call(brush.move, null)
+    return
+  }
+
+  const selectedLons = currentXDomain.filter(lon => {
+    const xPos = x(lon)
+    return xPos + x.bandwidth() >= x0 && xPos <= x1
+  })
+
+  const selectedDec = currentYDomain.filter(decade => {
+    const yPos = y(decade)
+    return yPos + y.bandwidth() >= y0 && yPos <= y1
+  })
+
+  if (selectedLons.length === 0 || selectedDec.length === 0) {
+    g.select(".brush").call(brush.move, null)
+    return
+  }
+
+  currentXDomain = selectedLons
+  currentYDomain = selectedDec
+
+  x.domain(currentXDomain)
+  y.domain(currentYDomain)
+
+  updateVisualization()
+
+  g.select(".brush").call(brush.move, null)
+}
+
+function resetZoom() {
+  currentXDomain = [...filteredLons]
+  currentYDomain = [...filteredDecades]
+
+  x.domain(currentXDomain)
+  y.domain(currentYDomain)
+
+  updateVisualization()
+
+  g.select(".brush").call(brush.move, null)
+}
+
+function updateVisualization() {
+  g.selectAll("rect.heatmap-cell").remove()
+  g.selectAll(".axis").remove()
+  g.selectAll(".axis-label").remove()
+
+  const visible = filteredData.filter(d =>
+    currentXDomain.includes(d.lon) &&
+    currentYDomain.includes(d.decade)
+  )
+
+  g.selectAll("rect.heatmap-cell")
+    .data(visible)
+    .enter()
+    .append("rect")
+    .attr("class", "heatmap-cell")
+    .attr("x", d => x(d.lon))
+    .attr("y", d => y(d.decade))
+    .attr("width", x.bandwidth())
+    .attr("height", y.bandwidth())
+    .attr("fill", d => color(d.val))
+
+  const lonTicks = desiredTicks.filter(v => currentXDomain.includes(v))
+
+  g.append("g")
+    .attr("class", "axis")
+    .attr("transform", `translate(0,${innerH})`)
+    .call(d3.axisBottom(x)
+      .tickValues(lonTicks.length > 0 ? lonTicks : currentXDomain)
+      .tickFormat(degLabel))
+
+  g.append("g")
+    .attr("class", "axis")
+    .call(d3.axisLeft(y).tickValues(currentYDomain))
+
+  g.append("text")
+    .attr("class", "axis-label")
+    .attr("x", innerW / 2)
+    .attr("y", innerH + 44)
+    .attr("text-anchor", "middle")
+    .text("Longitude")
+
+  g.append("text")
+    .attr("class", "axis-label")
+    .attr("transform", "rotate(-90)")
+    .attr("x", -innerH / 2)
+    .attr("y", -56)
+    .attr("text-anchor", "middle")
+    .text("Decade")
+
+  brush.extent([[0, 0], [innerW, innerH]])
+  g.select(".brush").remove()
+  const newBrush = g.append("g").attr("class", "brush").call(brush)
+  newBrush.select(".overlay")
+    .style("cursor", "crosshair")
+    .on("dblclick.brush", event => {
+      event.stopPropagation()
+      resetZoom()
+    })
+}
+
+g.on("wheel", function (event) {
+  event.preventDefault()
+  if (isDragging) return
+
+  const [mx, my] = d3.pointer(event, this)
+  const delta = -event.deltaY * 0.001
+  const zoom = Math.exp(delta)
+
+  const ix = Math.floor(mx / x.bandwidth())
+  const iy = Math.floor(my / y.bandwidth())
+
+  const centerLon = currentXDomain[ix]
+  const centerDec = currentYDomain[iy]
+
+  const fullLonIdx = lons.indexOf(centerLon)
+  const fullDecIdx = decades.indexOf(centerDec)
+
+  const lonCount = Math.max(2, Math.min(lons.length, Math.round(currentXDomain.length / zoom)))
+  const decCount = Math.max(2, Math.min(decades.length, Math.round(currentYDomain.length / zoom)))
+
+  const lonStart = Math.max(0, Math.floor(fullLonIdx - lonCount / 2))
+  const lonEnd = Math.min(lons.length, lonStart + lonCount)
+
+  const decStart = Math.max(0, Math.floor(fullDecIdx - decCount / 2))
+  const decEnd = Math.min(decades.length, decStart + decCount)
+
+  currentXDomain = lons.slice(lonStart, lonEnd)
+  currentYDomain = decades.slice(decStart, decEnd)
+
+  x.domain(currentXDomain)
+  y.domain(currentYDomain)
+
+  updateVisualization()
+})
+
 applyFilters()

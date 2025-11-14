@@ -1,47 +1,282 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>CMIP6 → D3 Visualizations</title>
-  <link rel="stylesheet" href="style.css"/>
-</head>
-<body>
-  <main class="container">
-    <h1>CMIP6 → D3 Visualizations</h1>
-    <p class="subtitle">Built from CMIP6 (tas, Amon) and exported CSVs in <code>/data/</code>. Open each page to view the chart.</p>
-    <h2>Team Members</h2>
-    <ul>
-      <li>
-        Kalkidan Berhe Gebrekirstos — A18484099 — 
-        <a href="mailto:kgebrekirstos@ucsd.edu">kgebrekirstos@ucsd.edu</a> —
-        <a href="https://github.com/Kalberhe" target="_blank">GitHub</a>
-      </li>
-      <li>
-        Nabila Afifah Qotrunnada — A18500553 — 
-        <a href="mailto:nqotrunnada@ucsd.edu">nqotrunnada@ucsd.edu</a> —
-        <a href="https://github.com/nabilafifahq" target="_blank">GitHub</a>
-      </li>
-      <li>
-        Ho Lim — A18071915 — 
-        <a href="mailto:hol050@ucsd.edu">hol050@ucsd.edu</a> —
-        <a href="https://github.com/HOYALIM" target="_blank">GitHub</a>
-      </li>
-    </ul>
+  <head>
+    <meta charset="utf-8">
+    <title>Project 3 Report</title>
+    <style>
+      :root {
+        --color-neutral-95: hsl(220 10% 95%);
+        --color-neutral-90: hsl(220 10% 90%);
+        --color-neutral-80: hsl(220 10% 80%);
+        --color-neutral-70: hsl(220 10% 70%);
+        --color-neutral-60: hsl(220 10% 60%);
+        --color-neutral-50: hsl(220 10% 50%);
+        --color-neutral-40: hsl(220 10% 40%);
+        --color-neutral-30: hsl(220 10% 30%);
+        --color-neutral-20: hsl(220 10% 20%);
+        --color-neutral-10: hsl(220 10% 10%);
+      }
 
-    <h2>Project Charts</h2>
-    <ul>
-      <li><a href="arctic_global.html">Arctic vs Global Warming (Annual Anomalies)</a></li>
-      <li><a href="scenarios.html">Historical vs Future Scenarios (Global Anomalies)</a></li>
-      <li><a href="hemisphere.html">Northern vs Southern Hemisphere</a></li>
-      <li><a href="latitude_profile.html">Latitude Temperature Profile</a></li>
-      <li><a href="acceleration.html">Warming Acceleration. Year to year change in anomaly</a></li>
-      <li><a href="equator.html">Warming Across the Pacific. 5°S to 5°N by decade</a></li>
-    </ul>
+      html {
+        font: 100%/1.5 system-ui;
+        counter-reset: figure;
+        background: var(--color-neutral-95);
+        max-width: min(75vw, 80em);
+        margin: 0 auto;
+      }
 
-    <p style="margin-top:1rem;color:#666;">
-      Tip: run locally with <code>python -m http.server 8000</code> and open <a href="http://localhost:8000/">http://localhost:8000/</a>.
-    </p>
-  </main>
-</body>
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6 {
+        line-height: 1.1;
+        font-weight: 600;
+        text-wrap: balance;
+      }
+
+      h1,
+      h2 {
+        border-bottom: 1px solid var(--color-neutral-80);
+        padding-bottom: 0.2em;
+      }
+
+      h1 {
+        margin-block: 1em 0.5rem;
+        font-size: clamp(2.5em, 150% + 2vh + 2vw, 10vmin);
+        font-weight: 800;
+      }
+
+      h1 small {
+        display: block;
+        width: fit-content;
+        padding: 0.2em 0.5em;
+        margin-inline: auto;
+        color: white;
+        background: var(--color-neutral-40);
+        font-size: 40%;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      h2 {
+        font-size: 180%;
+        color: var(--color-neutral-30);
+      }
+
+      h3 {
+        font-size: 130%;
+      }
+
+      ul,
+      ol {
+        padding-inline-start: 2em;
+      }
+
+      li::marker {
+        color: var(--color-neutral-40);
+      }
+
+      li + li {
+        margin-top: 0.2em;
+      }
+
+      header {
+        padding-block: 1em;
+        text-align: center;
+      }
+
+      main {
+        background: white;
+        color: var(--color-neutral-20);
+        border-radius: 1rem;
+        padding: 0.1rem 2rem 2rem 2rem;
+      }
+
+      figure {
+        margin: 1em 0;
+        padding: 0.5rem;
+        margin-inline: -0.5em;
+        border: 1px solid var(--color-neutral-80);
+        box-shadow: 0 0.1em 0.2em var(--color-neutral-95);
+        text-align: center;
+        background: white;
+      }
+
+      figure > figcaption {
+        font: 500 75% system-ui;
+        background: var(--color-neutral-95);
+        padding: 0.5rem;
+        margin: -0.5rem;
+        margin-top: 0.5rem;
+        counter-increment: figure;
+        text-align: left;
+      }
+
+      figure > figcaption::before {
+        content: "Figure " counter(figure) ": ";
+        font-weight: bold;
+        color: var(--color-neutral-40);
+      }
+
+      iframe.vis-frame {
+        width: 100%;
+        height: 100vh;
+        border: 1px solid var(--color-neutral-80);
+        border-radius: 0.5rem;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>
+      <h1>
+        <small>Project 3 · Team Alter Ego</small>
+        Comparing Decadal Warming in the Central and Western Equatorial Pacific
+      </h1>
+
+      <p><strong>Ho Lim</strong> · <em>hol050@ucsd.edu</em></p>
+      <p><strong>Kalkidan Gebrekirstos</strong> · <em>kgebrekirstos@ucsd.edu</em></p>
+      <p><strong>Nabila Qotrunnada</strong> · <em>nqotrunnada@ucsd.edu</em></p>
+    </header>
+
+    <main>
+      <figure>
+        <iframe
+          class="vis-frame"
+          src="equator.html"
+          title="Comparing decadal warming in the central and western equatorial Pacific"
+        ></iframe>
+        <figcaption>
+          Interactive heatmap of decadal temperature anomalies along the equatorial Pacific belt from 5° South to 5° North. The graphic supports zoom, filtering by longitude band, color scale adjustment, and tooltips with regional summaries.
+        </figcaption>
+      </figure>
+
+      <h2>Question</h2>
+      <p>
+        How has decadal warming along the equatorial Pacific been distributed between the central basin and the western warm pool?
+      </p>
+
+      <h2>Problem Statement</h2>
+      <p>
+        Climate studies often describe a shift toward more El Niño like conditions where warm anomalies extend eastward across the Pacific. We wanted to see whether this pattern appears in the CMIP6 multi model ensemble once we average over many models and decades. A static global map hides this story because it mixes many regions and time slices in one view. Our goal is to build an interactive graphic that makes a small but consistent regional signal easier to see and verify.
+      </p>
+
+      <section>
+        <h2>Dataset and Data Transformations</h2>
+        <p>
+          We use the CMIP6 dataset hosted in NOAA’s public bucket on Google Cloud. For this project we focus on near surface air temperature <code>tas</code> and use the CMIP6 example Colab as a starting point to subset the archive, compute decadal means for 5°S to 5°N from 180°W to 180°E, and turn absolute temperatures into anomalies relative to the 1850 to 1900 baseline. The result is a single CSV file, <code>equator_belt_longitude_decadal.csv</code>, with one row per decade and longitude and a column <code>tas_anom_c_mean</code> that we load directly into D3 from GitHub Pages without any server side code. In the browser we only compute simple regional means for 0° to 90°E and 90° to 180°E for the tooltip, plus the filters and zoom ranges that support interaction.
+        </p>
+      </section>
+
+      <section>
+        <h2>Visual Encodings</h2>
+
+        <h3>Marks and axes</h3>
+        <ul>
+          <li>
+            Each cell represents one CMIP6 longitude grid column and one decade in the 5°S-5°N band. The horizontal spacing follows the native CMIP6 grid, which uses fractional degrees rather than whole 1° steps.
+          </li>
+          <li>
+            Longitude is on the horizontal axis with tick labels every 30 degrees from 180°W to 180°E. Decade is on the vertical axis, with 1850 at the bottom and 2010 at the top, so time always reads upward.
+          </li>
+          <li>
+            We show all decades on the y axis. This avoids hidden time periods and supports quick scanning from early historical decades to recent decades in a single continuous view.
+          </li>
+        </ul>
+
+        <h3>Color scale</h3>
+        <ul>
+          <li>
+            Color encodes the temperature anomaly in degrees Celsius. We use a diverging red to blue scale centered at zero so that cooling, near zero, and warming are visually separated.
+          </li>
+          <li>
+            The default domain is symmetric around zero and uses the maximum absolute anomaly to set the limits. This avoids overstating either warming or cooling just because of an asymmetric range.
+          </li>
+          <li>
+            The vertical legend on the right shows the current mapping from anomaly to color. Range sliders and draggable handles below adjust the active range and fade cells outside this band, which helps highlight subtle gradients without hiding the numerical scale.
+          </li>
+        </ul>
+
+        <h3>Layout and region labels</h3>
+        <ul>
+          <li>
+            We keep a single main heatmap and a compact vertical legend. There are no extra panels or in plot trend lines, which keeps the grid readable and makes room for interaction.
+          </li>
+          <li>
+            We briefly considered side by side small multiples for the two regions, but chose a single heatmap with a region filter so viewers do not have to split attention across separate panels and can still return to the full Pacific view.
+          </li>
+          <li>
+            The title and subtitle state exactly what is shown. decadal anomalies for 5°S to 5°N from 180°W to 180°E, relative to 1850 to 1900, based on the CMIP6 ensemble.
+          </li>
+          <li>
+            The region filter uses clear labels. all Pacific longitudes, 0° to 90°E as the central Pacific, and 90° to 180°E as the western warm pool. This makes it obvious that we are comparing two Pacific bands, not whole hemispheres.
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Interaction Design and Rationale</h2>
+
+        <h3>Region filter and dynamic queries</h3>
+        <ul>
+          <li>
+            The region drop down is the main dynamic filter. The default view shows all longitudes so viewers see the overall warming trend along the equator.
+          </li>
+          <li>
+            Switching to the central or western band hides the other region and lets users focus on one side at a time. Toggling between these options supports the core question about how warming is distributed between the two bands.
+          </li>
+        </ul>
+
+        <h3>Tooltip and regional summaries</h3>
+        <ul>
+          <li>
+            When the user hovers over a cell, the tooltip reports four numbers. the decade and longitude value, the central mean for that decade, the western mean, and their difference.
+          </li>
+          <li>
+            These values make a very small signal visible. the central band is similar to or cooler than the west in the late 1800s, then becomes consistently warmer by about a tenth of a degree in recent decades. This pattern is not reliable by eye from color alone.
+          </li>
+        </ul>
+
+        <h3>Zoom, brushing, and color focus</h3>
+        <ul>
+          <li>
+            A rectangular brush lets users drag over any region of the grid to zoom into a subset of longitudes and decades. Double click resets the view. Mouse wheel zoom centered on the cursor gives a quick way to inspect local structure.
+          </li>
+          <li>
+            The legend sliders and handles act as a dynamic query on anomaly values. They keep the numeric scale visible while dimming values outside the selected range, which is helpful when users want to study moderate anomalies instead of only extreme warming.
+          </li>
+          <li>
+            Together, these interactions meet the assignment goal. They expose patterns in space and time, and especially the small regional differences, that a single static heatmap would not communicate as clearly.
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Development Process</h2>
+
+        <p>
+          Our team, Alter Ego, has three members. We estimate roughly 36 people hours in total, about 12 hours per person across data preprocessing, D3 coding, and debugging. We split the work fairly evenly. all of us worked on the CMIP6 preprocessing, on deciding which subset of the data to use, and on refining the main question.
+        </p>
+        <p>
+          In the first phase we used Python, xarray, and the CMIP6 example Colab to subset the NOAA archive to 5°S to 5°N, compute decadal means, and convert absolute temperatures into anomalies relative to 1850 to 1900. We also wrote small sanity scripts to compare central and western regional means by decade and confirm that the differences we care about are small but real. In the second phase we built a static D3 heatmap that loaded the CSV, set up the axes, and applied the diverging color scale. That prototype made it clear that we needed interaction to trust any regional differences.
+        </p>
+        <p>
+          In the final phase we added the region filter, tooltip with regional summaries, brush and wheel zoom, and the interactive legend. We adjusted axis ticks, labels, and the subtitle so the plot reads clearly on a laptop and still fits inside a single page. The hardest parts were keeping the zoom, filter state, and legend based fading in sync without bugs and tuning the tooltip so it helped the story without feeling heavy.
+        </p>
+      </section>
+
+      <section>
+        <h2>Findings and Interpretation</h2>
+
+        <p>
+          The heatmap shows that most of the equatorial Pacific warms over time. Decades after about 1950 are dominated by positive anomalies along the 5°S to 5°N belt, with the strongest warming in the most recent decades. This overall pattern is visible even without interaction.
+        </p>
+        <p>
+          The tooltip reveals a more subtle result. When we look at decadal means for 0° to 90°E and 90° to 180°E, the central band is slightly cooler or similar to the western warm pool in the late nineteenth century. By the mid twentieth century some decades show central anomalies that are roughly a tenth of a degree warmer than western anomalies. From about 1970 through 2010, the central region stays on average about 0.1 degrees Celsius warmer than the western band. This shift is small, but the interactive design makes it visible and lets viewers check it decade by decade.
+        </p>
+      </section>
+    </main>
+  </body>
 </html>

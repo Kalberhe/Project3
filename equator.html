@@ -14,23 +14,28 @@
   .hover-target { cursor: crosshair }
 </style>
 
-<h2>Warming Across the Pacific. 5°S to 5°N by decade</h2>
-<p class="sub">Temperature anomalies near the equator between 5° South and 5° North shown decade by decade from bottom to top. Each horizontal band is a decade from 1850 at the bottom to 2010 at the top. Longitude runs left to right across the Pacific. <strong>Data transformation:</strong> Anomalies are calculated relative to the 1850-1900 baseline period. Values represent decade-wise mean temperature anomalies (°C) aggregated from monthly CMIP6 model outputs. The diverging color scale (Red-Blue) uses red for positive anomalies (warming) and blue for negative anomalies (cooling), centered at zero.</p>
+<h2>Comparing Decadal Warming in the Central and Western Equatorial Pacific.</h2>
+<p class="sub">Temperature anomalies near the equator between 5° South and 5° North shown decade by decade from bottom to top. Each horizontal band is a decade from 1850 at the bottom to 2010 at the top. Longitude runs left to right across the Pacific. The Pacific basin spans both west and east longitudes, so values range from 180°W to 180°E. <strong> Data transformation: </strong> Anomalies are calculated relative to the 1850 to 1900 baseline period. Each cell shows the decade mean temperature anomaly in °C, aggregated from monthly CMIP6 model outputs for all models in the ensemble. The diverging red to blue color scale centers at zero to show warming and cooling. </p>
 
 <div style="margin: 14px 0; padding: 12px; background: #f5f5f5; border-radius: 4px;">
   <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
     <div>
-      <label for="lonFilter" style="font-weight: 500; margin-right: 8px;">Longitude Range:</label>
+      <label for="lonFilter" style="font-weight: 500; margin-right: 8px;">Region Filter (Pacific only):</label>
       <select id="lonFilter" style="padding: 6px 12px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px;">
-        <option value="all">All Longitudes</option>
-        <option value="0-90">0° to 90°</option>
-        <option value="90-180">90° to 180°</option>
+        <option value="all">All Pacific Longitudes</option>
+        <option value="0-90">0° to 90°E (Central Pacific)</option>
+        <option value="90-180">90° to 180°E (Western Warm Pool)</option>
       </select>
     </div>
     <button id="resetFilters" style="padding: 6px 16px; font-size: 14px; background: #666; color: white; border: none; border-radius: 4px; cursor: pointer;">
       Reset Filters
     </button>
   </div>
+
+  <p style="font-size: 12px; margin: 6px 0 2px; color: #666;">
+    These regions isolate the central and western Pacific to reveal small but meaningful differences in warming.
+  </p>
+  
   <div style="margin-top: 12px; padding: 12px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">
     <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
       <div style="flex: 1; min-width: 200px;">
